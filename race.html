@@ -1,7 +1,8 @@
 <!doctype html>
 <script>
-var t0 = performance.now();
+var t = performance.now();
+var u = location.origin;
 navigator.mediaDevices.getUserMedia({video:true})
-  .then(s => { s.getTracks().forEach(t => t.stop()); document.title = 'GRANTED ' + (performance.now()-t0).toFixed(0) + 'ms'; })
-  .catch(e => { document.title = e.name + ' ' + (performance.now()-t0).toFixed(1) + 'ms'; });
+  .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); document.title='GRANTED '+(performance.now()-t).toFixed(0)+'ms'; })
+  .catch(function(e){ document.title=e.name+' '+(performance.now()-t).toFixed(1)+'ms'; });
 </script>

