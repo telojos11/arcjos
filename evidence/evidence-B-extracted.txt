@@ -1,0 +1,11 @@
+pages: 1
+METADATA Title: MyBank - Account Statement
+---- page 1 text ----
+7/29/26, 2:55 AM MyBank - Account Statement
+Cross-origin iframe, EMPTY <title> (origin B: localhost:8081)
+print_render_frame_helper.cc:609 — options.Set("title", title.empty() ? params.title :
+title)
+With an empty document title, the fallback is params.title, which the browser populated from
+initiator->GetTitle().
+window.print()
+127.0.0.1:8080/top-notitle.html?session=SUPERSECRET-TOKEN-12345&user=admin 1/1

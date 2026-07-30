@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head><title></title></head>
+<body style="font-family:sans-serif;background:#fee;padding:12px">
+  <h3>Cross-origin iframe, EMPTY &lt;title&gt; (origin B: localhost:8081)</h3>
+  <p>print_render_frame_helper.cc:609 &mdash;
+     <code>options.Set("title", title.empty() ? params.title : title)</code><br>
+     With an empty document title, the fallback is <code>params.title</code>,
+     which the browser populated from <code>initiator-&gt;GetTitle()</code>.</p>
+  <button style="font-size:16px;padding:8px 14px" onclick="window.print()">
+    window.print()
+  </button>
+</body></html>
