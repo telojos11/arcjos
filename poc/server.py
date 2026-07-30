@@ -10,6 +10,7 @@ def serve(port):
     with socketserver.TCPServer(('127.0.0.1', port), h) as s: s.serve_forever()
 for p in (9080, 9081):
     threading.Thread(target=serve, args=(p,), daemon=True).start()
-print('origin A: http://127.0.0.1:9080/top.html?session=SUPERSECRET-TOKEN-12345&user=admin')
-print('origin B: http://localhost:9081/frame.html')
+print('Attacker origin (127.0.0.1:9080):  http://127.0.0.1:9080/503614310-harness.html')
+print('Automated probe (no interaction): http://127.0.0.1:9080/503614310-automated.html')
+print('Victim origin  (localhost:9081):   http://localhost:9081/503614310-harness.html')
 threading.Event().wait()

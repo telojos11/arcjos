@@ -143,7 +143,6 @@ Each reads origin from `GetPage().GetMainDocument()` at close time. If any lacks
 | `poc/503614310-harness.html` | Interactive 5-tab race harness |
 | `poc/503614310-race.html` | Race payload — auto-calls permission API on load |
 | `poc/server.py` | Serves both origins (127.0.0.1:9080 + localhost:9081) |
-| `poc/evidence-Arc-print-leak.pdf` | Arc browser — confirmed print header URL leak |
 | `THREAT_MODEL.md` | Full threat model with 5 bug classes |
 | `503614310.txt` | Original Flapjack AI report |
 
