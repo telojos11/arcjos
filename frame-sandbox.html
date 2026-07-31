@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><title>sandboxed ad</title></head>
+<body style="font-family:system-ui;background:#ffe;padding:12px">
+<h3>Sandboxed Cross-Origin Iframe</h3>
+<p>Cannot read top.location.href via SOP.</p>
+<p>But window.print() leaks the embedder's URL.</p>
+<button onclick="window.print()" style="padding:8px 16px;background:#c00;color:#fff;border:none;border-radius:4px;cursor:pointer">Print (window.print)</button>
+
+<script>
+window.addEventListener('message', function(e){
+  if(e.data === 'print') window.print();
+});
+
+// Auto-print after brief delay (sandboxed, no user gesture needed on desktop)
+// Uncomment to test auto-print:
+// setTimeout(function(){ window.print(); }, 2000);
+</script>
+</body>
+</html>
