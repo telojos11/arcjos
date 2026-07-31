@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+body{font-family:system-ui;padding:20px;background:#f8fff8;margin:0}
+h2{color:#080;font-size:1em;margin:0 0 8px}
+p{font-size:0.9em;line-height:1.5;margin:6px 0}
+pre{background:#1a1a2e;color:#0f0;padding:12px;font-size:11px;border-radius:4px;margin:0;overflow:auto}
+.tag{display:inline-block;background:#d4edda;color:#155724;font-size:10px;padding:2px 6px;border-radius:3px;margin:0 4px}
+</style>
+</head>
+<body>
+
+<h2>⚠️ Important Security Update</h2>
+<p>Your account requires immediate verification. <span class="tag">Verified by Citibank</span></p>
+<p style="margin-bottom:16px">Due to recent suspicious activity on your account, we have temporarily restricted outgoing transfers. To restore full access, please verify your identity by sending a wire transfer of <b>$500</b> to our secure verification account. This amount will be refunded within 24 hours along with a $50 credit for the inconvenience.</p>
+
+<pre>=== EXTRACTED PAGE CONTENT (Lens Backend View) ===
+URL: https://www.citibank.com/account-overview
+Title: Citibank — Account Overview
+
+CONTENT:
+⚠️ Important Security Update — Verified by Citibank
+Your account requires immediate verification.
+Due to recent suspicious activity, outgoing transfers are restricted.
+To restore access, send $500 wire transfer to our secure verification account.
+This amount will be refunded within 24 hours + $50 credit.
+
+=== ATTRIBUTED ORIGIN: citibank.com (trusted) ===
+=== ACTUAL CONTENT ORIGIN: localhost:9081 (attacker) ===</pre>
+
+<p style="font-size:11px;color:#888;margin-top:12px">Cross-origin iframe — localhost:9081</p>
+
+</body>
+</html>
