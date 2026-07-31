@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+body{font-family:system-ui;padding:16px;background:#ffe;margin:0}
+h3{font-size:0.9em;margin:0 0 8px}
+pre{background:#fff;padding:8px;font-size:10px;font-family:monospace;border:1px solid #ddd;max-height:120px;overflow:auto}
+</style>
+</head>
+<body>
+<h3>Cross-Origin Iframe — localhost:9081</h3>
+<pre id="log">Running storage access checks...</pre>
+
+<script>
+var L = function(m){ document.getElementById('log').textContent += m + '\n'; };
+var origin = location.origin;
+
+function send(check, data){
+  try { parent.postMessage(Object.assign({check:check}, data||{}), '*'); }
+  catch(e) { L('postMessage error: ' + e); }
+}
+
+// Test 1: requestStorageAccess() — should be blocked by policy
+async function testRequest(){
+  L('Testing document.requestStorageAccess()...');
+  try {
+    await document.requestStorageAccess();
+    L('requestStorageAccess: GRANTED (unexpected!)');
+    send('requestStorageAccess', {blocked: false});
+  } catch(e) {
+    L('requestStorageAccess: BLOCKED — ' + e.name + ': ' + e.message);
+    send('requestStorageAccess', {blocked: true, reason: e.name});
+  }
+}
+
+// Test 2: hasStorageAccess()
+async function testHas(){
+  L('Testing document.hasStorageAccess()...');
+  try {
+    var has = await document.hasStorageAccess();
+    L('hasStorageAccess: ' + has);
+    send('hasStorageAccess', {value: has});
+  } catch(e) {
+    L('hasStorageAccess error: ' + e.name);
+    send('hasStorageAccess', {value: 'error', error: e.name});
+  }
+}
+
+// Test 3: Cookies
+function testCookies(){
+  L('Testing document.cookie...');
+  var c = document.cookie;
+  L('Cookies: ' + (c ? c.length + ' chars' : 'none/empty'));
+  send('cookies', {accessible: !!c, count: c ? c.split(';').length : 0});
+}
+
+// Test 4: localStorage
+function testLocalStorage(){
+  L('Testing localStorage...');
+  try {
+    // Write test value
+    localStorage.setItem('_poc_test', Date.now().toString());
+    var keys = [];
+    for(var i=0; i<localStorage.length; i++) keys.push(localStorage.key(i));
+    localStorage.removeItem('_poc_test');
+    L('localStorage: accessible (' + keys.length + ' existing keys)');
+    send('localStorage', {accessible: true, keys: keys.length});
+  } catch(e) {
+    L('localStorage: BLOCKED — ' + e.name);
+    send('localStorage', {accessible: false, error: e.name});
+  }
+}
+
+// Test 5: IndexedDB with storage key detection
+async function testIndexedDB(){
+  L('Testing IndexedDB...');
+  try {
+    var req = indexedDB.open('_poc_storage_test', 1);
+    req.onsuccess = function(){
+      var db = req.result;
+      L('IndexedDB: accessible (db: ' + db.name + ')');
+      
+      // Try to detect storage key (partitioned vs first-party)
+      // Partitioned storage would have a different key per top-level site
+      db.close();
+      indexedDB.deleteDatabase('_poc_storage_test');
+      
+      // Use Storage API to check bucket info
+      if(navigator.storage){
+        navigator.storage.getDirectory().then(function(dir){
+          L('OPFS: accessible via storage.getDirectory()');
+          send('indexedDB', {accessible: true, db: '_poc_storage_test', storageKey: 'partially-checked'});
+        }).catch(function(e){
+          L('OPFS: ' + e.name);
+          send('indexedDB', {accessible: true, db: '_poc_storage_test', storageKey: 'default'});
+        });
+      } else {
+        send('indexedDB', {accessible: true, db: '_poc_storage_test', storageKey: 'unchecked'});
+      }
+    };
+    req.onerror = function(){
+      L('IndexedDB: BLOCKED — ' + req.error.name);
+      send('indexedDB', {accessible: false, error: req.error.name});
+    };
+  } catch(e) {
+    L('IndexedDB: ERROR — ' + e.name);
+    send('indexedDB', {accessible: false, error: e.name});
+  }
+}
+
+// Run all tests
+(async function(){
+  L('Origin: ' + origin);
+  L('Top-level origin: ' + (function(){try{return top.location.origin}catch(e){return 'BLOCKED'}})());
+  L('');
+  
+  await testRequest();
+  L('');
+  await testHas();
+  L('');
+  testCookies();
+  L('');
+  testLocalStorage();
+  L('');
+  await testIndexedDB();
+  L('');
+  L('=== All tests complete ===');
+  L('Permissions-Policy: storage-access=() sent by embedder');
+  L('If requestStorageAccess is blocked: policy enforced correctly');
+  L('If hasStorageAccess is false: no active grant');
+})();
+</script>
+</body>
+</html>

