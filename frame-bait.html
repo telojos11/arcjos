@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><title>Print Widget</title>
+<style>
+body{font-family:system-ui;background:#ffe;padding:12px;margin:0}
+h3{font-size:0.9em;margin:0 0 4px}
+p{font-size:0.8em;margin:4px 0}
+pre{font-size:10px;background:#fff;padding:6px;border:1px solid #ddd;margin:4px 0}
+button{padding:6px 12px;background:#c00;color:#fff;border:none;border-radius:3px;cursor:pointer}
+</style></head>
+<body>
+<h3>Print Widget (localhost:9081 — cross-origin)</h3>
+<pre id="info"></pre>
+<button onclick="window.print()">🖨 Print</button>
+<script>
+var out=[];
+try{out.push('top.location.href = '+top.location.href)}
+catch(e){out.push('top.location.href → BLOCKED ('+e.name+')')}
+out.push('document.referrer = '+(document.referrer||'(empty)'));
+document.getElementById('info').textContent=out.join('\n');
+</script>
+</body>
+</html>
