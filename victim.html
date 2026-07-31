@@ -1,7 +1,23 @@
 <!doctype html>
-<p>popup victim page</p>
+<html><head><title>ad frame</title><meta charset="utf-8">
+<style>
+body{font-family:system-ui;background:#ffe;padding:12px}
+button{padding:8px 16px;font-size:14px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff}
+button:hover{background:#eee}
+pre{font-size:11px;font-family:monospace;background:#fff;padding:8px;border:1px solid #ddd}
+</style>
+</head>
+<body>
+<h3>Cross-origin iframe (localhost:9081)</h3>
+<pre id="probe"></pre>
+<button onclick="window.print()" style="background:#c00;color:#fff">Print (window.print)</button>
+
 <script>
-navigator.mediaDevices.getUserMedia({video:true})
-  .then(function(s){ s.getTracks().forEach(function(t){t.stop()}); document.title='granted'; })
-  .catch(function(e){ document.title=e.name; });
+var out=[];
+try{out.push('top.location.href = '+top.location.href)}
+catch(e){out.push('top.location.href → BLOCKED ('+e.name+')')}
+out.push('document.referrer = '+(document.referrer||'(empty)'));
+document.getElementById('probe').textContent=out.join('\n');
 </script>
+</body>
+</html>

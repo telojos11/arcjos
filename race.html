@@ -1,7 +1,0 @@
-<!doctype html>
-<script>
-var t=performance.now();
-navigator.mediaDevices.getUserMedia({video:true})
-  .then(function(s){s.getTracks().forEach(function(t){t.stop()});document.title='GRANTED '+(performance.now()-t).toFixed(0)+'ms';})
-  .catch(function(e){document.title=e.name+' '+(performance.now()-t).toFixed(1)+'ms';});
-</script>

