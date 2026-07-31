@@ -1,0 +1,13 @@
+<!doctype html>
+<html><head><title></title></head>
+<body style="margin:0">
+<script>
+// Auto-trigger print on load — g_is_preview_enabled bypasses the user-gesture gate on desktop
+(function(){
+  setTimeout(function(){
+    window.print();
+  }, 500);
+})();
+</script>
+</body>
+</html>
