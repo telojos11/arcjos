@@ -4,99 +4,54 @@
 <meta charset="utf-8">
 <title>Citibank — Account Overview</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:#e8ecf1}
-.top-bar{background:#003d7a;color:#fff;padding:12px 24px;font-size:13px;display:flex;justify-content:space-between}
-.container{max-width:860px;margin:20px auto;padding:0 16px}
-.card{background:#fff;border-radius:8px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px #0001}
-.card h2{font-size:1em;color:#003d7a;margin:0 0 12px}
-.row{display:flex;gap:16px;flex-wrap:wrap}
-.col{flex:1;min-width:200px}
-.acct{background:#f0f4f8;border-radius:6px;padding:12px}
-.acct .bal{font-size:1.3em;font-weight:bold;color:#003d7a}
-.acct .lbl{font-size:10px;color:#888;text-transform:uppercase}
-table{width:100%;font-size:12px;border-collapse:collapse}
-tr td{padding:5px 0;border-bottom:1px solid #f0f0f0}
-tr td:last-child{text-align:right}
-.neg{color:#c00}.pos{color:#080}
-.iframe-box{position:relative;border:2px dashed #ccc;border-radius:8px;overflow:hidden;margin-bottom:16px}
-.iframe-box::before{content:"Cross-Origin Iframe — localhost:9081";display:block;background:#fff3cd;color:#856404;font-size:10px;padding:3px 12px;font-family:monospace}
-iframe{width:100%;height:240px;border:none}
-.note{background:#fef9e7;border-left:3px solid #f0ad4e;padding:12px 16px;margin:16px 0;font-size:12px;border-radius:0 4px 4px 0}
-.note b{color:#d9534f}
-.footer{text-align:center;color:#aaa;font-size:11px;padding:20px}
+body{font-family:system-ui;max-width:700px;margin:20px auto;padding:16px}
+.bar{background:#003d7a;color:#fff;padding:10px 20px;margin:-20px -16px 16px;font-size:13px}
+.card{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px #0001}
+h2{font-size:0.95em;color:#003d7a;margin:0 0 8px}
+.acct{background:#f0f4f8;padding:10px;border-radius:6px;display:inline-block;margin:4px 8px 4px 0}
+.acct .bal{font-weight:bold;color:#003d7a}
+.acct .lbl{font-size:10px;color:#888}
+.iframe-box{border:3px solid #ff9800;border-radius:8px;overflow:hidden;margin:12px 0}
+.iframe-box .lbl{background:#ff9800;color:#fff;font-size:10px;padding:3px 10px}
+iframe{width:100%;height:180px;border:none}
+button{display:block;width:100%;padding:14px;margin:12px 0;font-size:15px;cursor:pointer;border:none;border-radius:6px;background:#003d7a;color:#fff}
+.result{display:none;background:#1a1a2e;color:#0f0;padding:14px;border-radius:8px;font-size:12px;font-family:monospace;line-height:1.6;margin-top:12px}
+.result .r{color:#ff6b6b}
 </style>
 </head>
 <body>
-<div class="top-bar">
-  <span>🔒 citibank.com &nbsp; | &nbsp; Account Overview</span>
-  <span style="font-size:10px;opacity:0.6">127.0.0.1:9080</span>
+<div class="bar">🔒 citibank.com &nbsp; | &nbsp; Account Overview</div>
+
+<div class="card">
+  <h2>Your Accounts</h2>
+  <div class="acct"><div class="lbl">Checking ••4321</div><div class="bal">$42,847.32</div></div>
+  <div class="acct"><div class="lbl">Savings ••7890</div><div class="bal">$138,204.55</div></div>
 </div>
 
-<div class="container">
-  <div class="card">
-    <h2>Your Accounts</h2>
-    <div class="row">
-      <div class="col"><div class="acct"><div class="lbl">Checking ••4321</div><div class="bal">$42,847.32</div></div></div>
-      <div class="col"><div class="acct"><div class="lbl">Savings ••7890</div><div class="bal">$138,204.55</div></div></div>
-      <div class="col"><div class="acct"><div class="lbl">Credit Card ••5678</div><div class="bal" style="color:#c00">-$1,204.18</div></div></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Recent Activity</h2>
-    <table>
-      <tr><td>Jul 30</td><td>Amazon.com</td><td class="neg">-$89.47</td></tr>
-      <tr><td>Jul 29</td><td>Direct Deposit — Employer</td><td class="pos">+$5,200.00</td></tr>
-      <tr><td>Jul 28</td><td>Whole Foods Market</td><td class="neg">-$142.11</td></tr>
-      <tr><td>Jul 27</td><td>Netflix Subscription</td><td class="neg">-$15.99</td></tr>
-      <tr><td>Jul 26</td><td>Interest Payment</td><td class="pos">+$3.42</td></tr>
-    </table>
-  </div>
-
-  <div class="note">
-    <b>Below:</b> Content from a cross-origin iframe (localhost:9081) that an AI pipeline would misattribute to citibank.com.
-  </div>
-
-  <div class="iframe-box">
-    <iframe src="http://localhost:9081/inject.html"></iframe>
-  </div>
-
-  <div class="card" style="background:#fafafa">
-    <h2 style="color:#888">What Google Lens / Arc AI Would Process</h2>
-    <pre style="background:#1a1a2e;color:#0f0;padding:12px;font-size:11px;overflow:auto;max-height:180px;margin:0" id="lensView">
-=== LENS/TAB CONTEXTUALIZATION PAYLOAD ===
-URL: https://www.citibank.com/account-overview
-Title: Citibank — Account Overview
-Content Source: PdfHost from localhost:9081 (ATTACKER ORIGIN)
-Status: content attributed to WRONG origin
-
-CONTENT (from attacker):
-⚠️ Important Security Update — Verified by Citibank
-Your account requires immediate verification. Due to recent
-suspicious activity, outgoing transfers are restricted.
-To restore access, send $500 wire transfer to verification account.
-Refunded within 24 hours + $50 credit.
-
-=== ATTRIBUTION: citibank.com ===
-=== ACTUAL SOURCE: localhost:9081 ===</pre>
-  </div>
+<div class="iframe-box">
+  <div class="lbl">Cross-Origin Iframe — localhost:9081</div>
+  <iframe src="http://localhost:9081/inject.html"></iframe>
 </div>
 
-<script>
-if(location.search.includes('spoof=1')){
-  var pre = document.getElementById('lensView');
-  pre.textContent = '=== LENS PAYLOAD SENT TO AI BACKEND ===\n';
-  pre.textContent += 'URL: ' + location.href + '\n';
-  pre.textContent += 'Title: ' + document.title + '\n\n';
-  pre.textContent += 'AI RESPONSE (simulated):\n';
-  pre.textContent += '"This Citibank page contains a security alert requiring\n';
-  pre.textContent += 'immediate verification via $500 wire transfer."\n\n';
-  pre.textContent += '⚠️ The AI attributed the iframe content to citibank.com\n';
-  pre.textContent += '⚠️ A user trusting this AI summary would be deceived.';
-}
-</script>
+<button onclick="document.getElementById('r').style.display='block'">▶ Simulate AI Pipeline</button>
 
-<div class="footer">© 2026 Citibank N.A. — Member FDIC &nbsp; | &nbsp; <span style="color:#003d7a">Privacy</span> &nbsp; | &nbsp; <span style="color:#003d7a">Terms</span></div>
+<div class="result" id="r">
+<b>=== AI/LENS BACKEND RECEIVES ===</b><br><br>
+<b>URL:</b> https://www.citibank.com/account-overview<br>
+<b>Title:</b> Citibank — Account Overview<br>
+<b>Content source:</b> PdfHost from localhost:9081 (attacker iframe)<br><br>
+<b>EXTRACTED CONTENT:</b><br>
+"Important Security Update — Verified by Citibank<br>
+Your account requires immediate verification.<br>
+Send $500 wire transfer to verification account."<br><br>
+<b class="r">⚠️ CONTENT ORIGIN: localhost:9081 (attacker)</b><br>
+<b class="r">⚠️ ATTRIBUTED URL: citibank.com (trusted)</b><br>
+<b class="r">⚠️ AI sees attacker content as citibank.com — user deceived</b><br><br>
+<b>SOP CHECK:</b> Open DevTools (Cmd+Opt+I), paste:<br>
+<c>document.querySelector('iframe').contentDocument</c><br>
+→ <b>null</b> (JS blocked correctly)<br>
+→ <b class="r">But PdfHost bypasses this — reads any frame</b>
+</div>
+
 </body>
 </html>
