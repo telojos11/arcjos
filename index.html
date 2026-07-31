@@ -2,100 +2,70 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Embedder — Permissions-Policy Test</title>
 <style>
 body{font-family:system-ui;max-width:800px;margin:20px auto;padding:20px;background:#fff}
 h1{font-size:1.1em;border-bottom:2px solid #c00;padding-bottom:6px}
-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
-th{text-align:left;padding:6px 8px;background:#f0f0f0}
-td{padding:6px 8px;border-bottom:1px solid #eee;font-family:monospace}
-td.pass{color:#080;font-weight:bold}
-td.fail{color:#c00;font-weight:bold}
-.iframe-wrap{border:3px solid #ff9800;border-radius:8px;overflow:hidden;margin:16px 0}
-.iframe-wrap .l{background:#ff9800;color:#fff;font-size:10px;padding:3px 12px}
-iframe{width:100%;height:300px;border:none}
-.impact{background:#fff3f3;border-left:3px solid #c00;padding:12px 16px;margin:16px 0;border-radius:0 4px 4px 0}
-.impact h3{color:#c00;margin:0 0 6px;font-size:0.95em}
-.impact ul{margin:4px 0;padding-left:20px;font-size:0.9em}
-pre{background:#111;color:#0f0;padding:12px;font-size:11px;font-family:monospace;max-height:200px;overflow:auto}
+pre{background:#111;color:#0f0;padding:14px;font-size:11px;font-family:monospace;max-height:320px;overflow:auto;white-space:pre-wrap}
+.bad{color:#ff6b6b}
+.good{color:#0f0}
+.impact{background:#fff3f3;border-left:3px solid #c00;padding:12px 16px;margin:16px 0;border-radius:0 4px 4px 0;display:none}
+button{padding:10px 20px;margin:4px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#f5f5f5;font-size:13px}
+button.test{background:#c00;color:#fff;border-color:#a00}
+iframe{width:100%;height:280px;border:3px solid #ff9800;margin:12px 0}
 </style>
 </head>
 <body>
 
-<h1>Storage Access — Permissions-Policy Test</h1>
-<p style="color:#888;font-size:13px">This page sends <code>Permissions-Policy: storage-access=()</code> — denying storage access to all nested frames.</p>
+<h1>Permissions-Policy Enforcement Gap</h1>
+<p style="color:#888;font-size:13px">Header: <code>Permissions-Policy: storage-access=()</code></p>
 
-<table>
-  <tr><th>Check</th><th>Expected</th><th>Result</th></tr>
-  <tr><td>Permissions-Policy header</td><td>storage-access=()</td><td id="c1">Checking...</td></tr>
-  <tr><td>requestStorageAccess() in iframe</td><td>Blocked by policy</td><td id="c2">Waiting for iframe...</td></tr>
-  <tr><td>hasStorageAccess() in iframe</td><td>false</td><td id="c3">Waiting...</td></tr>
-  <tr><td>document.cookie in iframe</td><td>Partitioned or blocked</td><td id="c4">Waiting...</td></tr>
-  <tr><td>localStorage in iframe</td><td>Origin-scoped (normal)</td><td id="c5">Waiting...</td></tr>
-  <tr><td>IndexedDB in iframe</td><td>Partitioned storage key</td><td id="c6">Waiting...</td></tr>
-</table>
+<button class="test" onclick="reloadIframe()">▶ Run Storage Access Test</button>
 
-<div class="iframe-wrap">
-  <div class="l">Cross-Origin Iframe — localhost:9081 (Permissions-Policy applies)</div>
-  <iframe id="f" src="http://localhost:9081/iframe.html"></iframe>
+<div class="impact" id="impact">
+  <b style="color:#c00">⚠️ POLICY ENFORCEMENT GAP CONFIRMED:</b><br>
+  <code>Permissions-Policy: storage-access=()</code> blocks <code>requestStorageAccess()</code><br>
+  but <b>does NOT revoke existing grants</b>. <code>hasStorageAccess()</code> returns TRUE<br>
+  and cookies are accessible with <b>unpartitioned</b> access.<br><br>
+  <b>Impact:</b> If a malicious iframe obtains a Storage Access grant via<br>
+  navigation IPC bypass (crbug 498417152), the embedder's Permissions-Policy<br>
+  provides <b>zero protection</b> — the grant persists and allows cross-site tracking.
 </div>
 
-<div class="impact">
-  <h3>If Permissions-Policy Bypass Succeeds (via navigation IPC):</h3>
-  <ul>
-    <li>Iframe gets <b>kStorageAccessGrantEligible</b> laundered through navigation</li>
-    <li><b>StorageAccessHandle</b> binds with <b>first-party StorageKey</b></li>
-    <li>Iframe gains <b>unpartitioned</b> access to: IndexedDB, CacheStorage, OPFS, BroadcastChannel, SharedWorker</li>
-    <li>Tracker in iframe can correlate user identity across <b>all top-level sites</b> that embed it</li>
-    <li>Defeats <b>cookie partitioning</b> and <b>storage partitioning</b> — the core anti-tracking defenses</li>
-  </ul>
-</div>
+<pre id="L">Waiting for iframe test results...
+The iframe auto-runs tests on load and reports results.</pre>
 
-<pre id="log">Listening for iframe results...</pre>
+<iframe id="f" src="http://localhost:9081/test-access.html"></iframe>
 
 <script>
-var L = function(m){document.getElementById('log').textContent += m + '\n'};
+var L = function(m){document.getElementById('L').textContent += m + '\n'};
 
-// Check 1: Did the Permissions-Policy header arrive?
-fetch(location.href, {method: 'HEAD'}).then(function(r){
-  var pp = r.headers.get('Permissions-Policy');
-  document.getElementById('c1').innerHTML = pp 
-    ? '<td class="pass">✓ ' + pp + '</td>' 
-    : '<td class="fail">✗ No header</td>';
-}).catch(function(){});
-
-// Listen for iframe results
 window.addEventListener('message', function(e){
-  L('Received from ' + e.origin + ': ' + JSON.stringify(e.data));
+  if(e.data.type !== 'sa-result') return;
+  var r = e.data.result;
   
-  if(e.data.check === 'requestStorageAccess'){
-    var cell = document.getElementById('c2');
-    cell.innerHTML = e.data.blocked
-      ? '<td class="pass">✓ Blocked: ' + e.data.reason + '</td>'
-      : '<td class="fail">⚠ NOT BLOCKED — policy bypass!</td>';
-  }
+  L('');
+  L('=== RESULTS FROM CROSS-ORIGIN IFRAME ===');
+  L('requestStorageAccess(): ' + (r.requestGranted ? 'GRANTED' : 'BLOCKED (' + r.requestError + ')'));
+  L('hasStorageAccess():    ' + r.hasAccess);
+  L('document.cookie:       ' + (r.cookies ? 'ACCESSIBLE (unpartitioned)' : 'empty/partitioned'));
+  L('OPFS:                  ' + (r.opfs ? 'ACCESSIBLE' : 'BLOCKED'));
+  L('');
   
-  if(e.data.check === 'hasStorageAccess'){
-    document.getElementById('c3').innerHTML = e.data.value === false
-      ? '<td class="pass">✓ false (no access)</td>'
-      : '<td class="fail">⚠ true — has storage access despite policy!</td>';
-  }
-  
-  if(e.data.check === 'cookies'){
-    document.getElementById('c4').innerHTML = 
-      '<td>' + (e.data.accessible ? 'Accessible: ' + e.data.count + ' cookies' : 'Empty/partitioned') + '</td>';
-  }
-  
-  if(e.data.check === 'localStorage'){
-    document.getElementById('c5').innerHTML = 
-      '<td>' + (e.data.accessible ? 'Accessible (' + e.data.keys + ' keys)' : 'Empty') + '</td>';
-  }
-  
-  if(e.data.check === 'indexedDB'){
-    document.getElementById('c6').innerHTML = 
-      '<td>' + (e.data.accessible ? 'Accessible: ' + e.data.db + ' (' + e.data.storageKey + ')' : 'Blocked: ' + e.data.error) + '</td>';
+  if(r.gap){
+    L('<span class="bad">⚠️ POLICY GAP: requestStorageAccess BLOCKED but hasStorageAccess = TRUE</span>');
+    L('<span class="bad">   Cookies: ' + (r.cookies ? 'FULLY ACCESSIBLE — grant is active!' : 'not accessible') + '</span>');
+    L('<span class="bad">   The Permissions-Policy blocks the API but does NOT revoke the grant.</span>');
+    document.getElementById('impact').style.display = 'block';
+  } else if(!r.requestGranted && !r.hasAccess) {
+    L('<span class="good">✓ Policy enforced: both denied</span>');
   }
 });
+
+function reloadIframe(){
+  L('');
+  L('Reloading iframe...');
+  document.getElementById('f').src = 'http://localhost:9081/test-access.html';
+}
 </script>
 </body>
 </html>

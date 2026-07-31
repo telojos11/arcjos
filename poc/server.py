@@ -2,7 +2,7 @@
 """Storage Access Permissions-Policy bypass — PoC Server"""
 import http.server, socketserver, os, functools, json
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 class H(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass

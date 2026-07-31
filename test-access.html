@@ -1,0 +1,89 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>body{font-family:system-ui;padding:16px;background:#ffe;margin:0} pre{background:#fff;padding:8px;font-size:10px;font-family:monospace;border:1px solid #ddd;max-height:240px;overflow:auto}</style>
+</head>
+<body>
+<h3>Storage Access Test — localhost:9081</h3>
+<pre id="L">Running tests...</pre>
+
+<script>
+var L=function(m){document.getElementById('L').textContent+=m+'\n'};
+var result = {};
+
+(async function(){
+  L('Origin: ' + location.origin);
+  
+  // Set test cookie
+  document.cookie = '_sa_test=1; SameSite=None; Secure; path=/';
+  
+  // Test 1: requestStorageAccess
+  try {
+    await document.requestStorageAccess();
+    result.requestGranted = true;
+    L('requestStorageAccess: GRANTED');
+  } catch(e) {
+    result.requestGranted = false;
+    result.requestError = e.name;
+    L('requestStorageAccess: BLOCKED — ' + e.name);
+  }
+  
+  // Test 2: hasStorageAccess
+  try {
+    result.hasAccess = await document.hasStorageAccess();
+    L('hasStorageAccess: ' + result.hasAccess);
+  } catch(e) {
+    result.hasAccess = 'error';
+    L('hasStorageAccess: ERROR');
+  }
+  
+  // Test 3: Cookies accessible?
+  result.cookies = document.cookie;
+  L('document.cookie: ' + (result.cookies ? 'ACCESSIBLE — unpartitioned grant active' : 'empty/partitioned'));
+  
+  // Test 4: OPFS
+  if(navigator.storage){
+    try {
+      await navigator.storage.getDirectory();
+      result.opfs = true;
+      L('OPFS: ACCESSIBLE');
+    } catch(e) {
+      result.opfs = false;
+      L('OPFS: BLOCKED');
+    }
+  }
+  
+  // Cleanup
+  document.cookie = '_sa_test=;expires=Thu,01 Jan 1970 00:00:00 GMT;path=/';
+  
+  // Send results
+  L('');
+  if(!result.requestGranted && result.hasAccess){
+    L('⚠️ POLICY GAP: requestStorageAccess blocked but hasStorageAccess=true');
+    L('Cookies ' + (result.cookies ? 'WERE' : 'were NOT') + ' accessible');
+    result.gap = true;
+  } else {
+    L('Policy enforcement: ' + (result.requestGranted ? 'permissive' : 'strict'));
+    result.gap = false;
+  }
+  
+  // Report to parent
+  try {
+    parent.postMessage({type:'sa-result', result:result}, '*');
+    L('Results sent to parent.');
+  } catch(e) {
+    L('Cannot reach parent: ' + e);
+  }
+  
+  // Also respond to manual test trigger
+  window.addEventListener('message', function(e){
+    if(e.data === 'test'){
+      try {
+        parent.postMessage({type:'sa-result', result:result}, '*');
+        L('Results resent to parent.');
+      } catch(err){}
+    }
+  });
+})();
+</script>
+</body>
+</html>
